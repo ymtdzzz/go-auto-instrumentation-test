@@ -18,8 +18,8 @@ FROM gcr.io/distroless/static-debian12:latest
 
 WORKDIR /
 
-COPY --from=builder /build/main /app/main
+COPY --from=builder /build/main /app/main_b
 
 USER nonroot
 
-CMD [ "/app/main" ]
+CMD [ "/app/main_b" ]

@@ -44,6 +44,7 @@ services:
       MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
       REDIS_ADDR: "redis:6379"
       SERVER_B_DATA_URL: "http://server_b_otel:8081/data"
+      SERVER_MODE: "net/http" # otel doesn't support gin and echo
     depends_on:
       - redis
       - mysql
@@ -59,6 +60,7 @@ services:
     environment:
       MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
       REDIS_ADDR: "redis:6379"
+      SERVER_MODE: "net/http" # otel doesn't support gin and echo
     depends_on:
       - redis
       - mysql
@@ -72,12 +74,11 @@ services:
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
       OTEL_EXPORTER_OTLP_INSECURE: true
-      OTEL_GO_AUTO_TARGET_EXE: /app/main
+      OTEL_GO_AUTO_TARGET_EXE: /app/main_a
       OTEL_SERVICE_NAME: server_a_otel
       OTEL_PROPAGATORS: tracecontext,baggage
       OTEL_GO_AUTO_INCLUDE_DB_STATEMENT: true
       OTEL_GO_AUTO_PARSE_DB_STATEMENT: true
-      SERVER_MODE: net/http # otel doesn't support gin and echo
     volumes:
       - server_a_otel_binary:/app
       - /proc:/host/proc
@@ -91,12 +92,11 @@ services:
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
       OTEL_EXPORTER_OTLP_INSECURE: true
-      OTEL_GO_AUTO_TARGET_EXE: /app/main
+      OTEL_GO_AUTO_TARGET_EXE: /app/main_b
       OTEL_SERVICE_NAME: server_b_otel
       OTEL_PROPAGATORS: tracecontext,baggage
       OTEL_GO_AUTO_INCLUDE_DB_STATEMENT: true
       OTEL_GO_AUTO_PARSE_DB_STATEMENT: true
-      SERVER_MODE: net/http # otel doesn't support gin and echo
     volumes:
       - server_b_otel_binary:/app
       - /proc:/host/proc

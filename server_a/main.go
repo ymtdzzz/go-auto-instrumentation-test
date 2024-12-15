@@ -57,8 +57,9 @@ func main() {
 				return
 			}
 
+			serverbURL := os.Getenv("SERVER_B_DATA_URL")
 			client := http.DefaultClient
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://server_b:8081/data", nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, serverbURL, nil)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -69,8 +70,10 @@ func main() {
 				return
 			}
 			defer resp.Body.Close()
-			fmt.Fprintln(w, "{\"response_status_from_b\": \"%d\", \"mysql_version\": \"%s\"}", resp.StatusCode, version)
+			fmt.Fprintf(w, "{\"response_status_from_b\": \"%d\", \"mysql_version\": \"%s\"}", resp.StatusCode, version)
 		})
+
+		http.ListenAndServe(":8080", mux)
 	} else {
 		// For alibaba
 		r := gin.Default()

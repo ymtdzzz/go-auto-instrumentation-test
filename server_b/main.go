@@ -40,7 +40,7 @@ func main() {
 	if serverMode == "net/http" {
 		// For otel
 		mux := http.NewServeMux()
-		mux.HandleFunc("/call-b", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/data", func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			// query mysql
 			var version string
@@ -58,6 +58,8 @@ func main() {
 
 			fmt.Fprintln(w, "{\"message\": \"Hello from server B!\", \"mysql_version\": \"%s\"}", version)
 		})
+
+		http.ListenAndServe(":8081", mux)
 	} else {
 		// Endpoint to return data
 		e.GET("/data", func(c echo.Context) error {
