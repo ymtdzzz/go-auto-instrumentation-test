@@ -1,0 +1,31 @@
+#
+# Build
+#
+FROM golang:1.23 AS builder
+
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+WORKDIR /build
+
+COPY . .
+
+# Install alibaba's auto instrumentation command
+# NOTE: Quickly install sudo command because it's used in install.sh
+RUN apt update \
+  && apt install -y sudo \
+  && curl -fsSL https://cdn.jsdelivr.net/gh/alibaba/opentelemetry-go-auto-instrumentation@main/install.sh | bash
+
+RUN otel go build -o main ./server_a
+
+#
+# Deploy
+#
+FROM gcr.io/distroless/static-debian12:latest
+
+WORKDIR /
+
+COPY --from=builder /build/main /main
+
+USER nonroot
+
+CMD [ "/main" ]

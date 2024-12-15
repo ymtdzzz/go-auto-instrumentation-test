@@ -1,0 +1,127 @@
+version: '3.9'
+
+services:
+  server_a_alibaba:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.a_alibaba
+    ports:
+      - "8080:8080"
+    environment:
+      MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
+      REDIS_ADDR: "redis:6379"
+      SERVER_B_DATA_URL: "http://server_b_alibaba:8081/data"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
+      OTEL_EXPORTER_OTLP_INSECURE: true
+      OTEL_SERVICE_NAME: server_a_alibaba
+    depends_on:
+      - redis
+      - mysql
+
+  server_b_alibaba:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.b_alibaba
+    ports:
+      - "8081:8081"
+    environment:
+      MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
+      REDIS_ADDR: "redis:6379"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
+      OTEL_EXPORTER_OTLP_INSECURE: true
+      OTEL_SERVICE_NAME: server_b_alibaba
+    depends_on:
+      - redis
+      - mysql
+
+  server_a_otel:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.a_otel
+    ports:
+      - "8082:8080"
+    environment:
+      MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
+      REDIS_ADDR: "redis:6379"
+      SERVER_B_DATA_URL: "http://server_b_otel:8081/data"
+    depends_on:
+      - redis
+      - mysql
+    volumes:
+      - server_a_otel_binary:/app
+
+  server_b_otel:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.b_otel
+    ports:
+      - "8083:8081"
+    environment:
+      MYSQL_DSN: "root:password@tcp(mysql:3306)/dbname"
+      REDIS_ADDR: "redis:6379"
+    depends_on:
+      - redis
+      - mysql
+    volumes:
+      - server_b_otel_binary:/app
+
+  server_a_otel_agent:
+    image: otel/autoinstrumentation-go
+    privileged: true
+    pid: "host"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
+      OTEL_EXPORTER_OTLP_INSECURE: true
+      OTEL_GO_AUTO_TARGET_EXE: /app/main
+      OTEL_SERVICE_NAME: server_a_otel
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_GO_AUTO_INCLUDE_DB_STATEMENT: true
+      OTEL_GO_AUTO_PARSE_DB_STATEMENT: true
+      SERVER_MODE: net/http # otel doesn't support gin and echo
+    volumes:
+      - server_a_otel_binary:/app
+      - /proc:/host/proc
+    depends_on:
+      - server_a_otel
+
+  server_b_otel_agent:
+    image: otel/autoinstrumentation-go
+    privileged: true
+    pid: "host"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://oteltui:4318"
+      OTEL_EXPORTER_OTLP_INSECURE: true
+      OTEL_GO_AUTO_TARGET_EXE: /app/main
+      OTEL_SERVICE_NAME: server_b_otel
+      OTEL_PROPAGATORS: tracecontext,baggage
+      OTEL_GO_AUTO_INCLUDE_DB_STATEMENT: true
+      OTEL_GO_AUTO_PARSE_DB_STATEMENT: true
+      SERVER_MODE: net/http # otel doesn't support gin and echo
+    volumes:
+      - server_b_otel_binary:/app
+      - /proc:/host/proc
+    depends_on:
+      - server_b_otel
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: dbname
+    ports:
+      - "3306:3306"
+
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+
+  oteltui:
+    image: ymtdzzz/otel-tui:latest
+    container_name: otel-tui
+    stdin_open: true
+    tty: true
+
+volumes:
+  server_a_otel_binary:
+  server_b_otel_binary:
